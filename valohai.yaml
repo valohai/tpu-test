@@ -1,0 +1,4 @@
+- step:
+    name: Sum
+    image: tensorflow/tensorflow:1.9.0-devel-py3
+    command: python sum.py
