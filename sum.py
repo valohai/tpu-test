@@ -6,6 +6,7 @@ from tensorflow.contrib.cluster_resolver import TPUClusterResolver
 
 tpu_name = os.environ.get('TPU_NAME')
 use_tpu = bool(tpu_name)
+output_dir = os.environ.get('VH_OUTPUTS_DIR', '.')
 
 
 def axy_computation(a, x, y):
@@ -15,8 +16,8 @@ output_shape = [80, 80]
 
 inputs = [
     3.0,
-    tf.ones(output_shape, tf.float32),
-    tf.ones(output_shape, tf.float32),
+    tf.random_uniform(output_shape, dtype=tf.float32),
+    tf.random_uniform(output_shape, dtype=tf.float32),
 ]
 
 if use_tpu:
@@ -35,17 +36,24 @@ with tf.Session(tpu_grpc_url) as sess:
         sess.run(tpu.initialize_system())
     sess.run(tf.global_variables_initializer())
     print('Running computation {}'.format(computation))
-    output_var = tf.get_variable('output', output_shape)
-    output = sess.run(tf.assign(output_var, computation))
+    output = sess.run(computation)
     print(output)
+
+    if not use_tpu:
+        # For whichever reason, we can't do this in the TPU environment...
+        output_var = tf.get_variable('output', output_shape)
+        sess.run(tf.assign(output_var, output))
+        save_path = tf.train.Saver().save(sess, output_dir + '/model.ckpt')
+        print('Saved model to: {}'.format(save_path))
+
+    with open(output_dir + '/output.txt', 'w') as outf:
+        outf.write(repr(output))
+        print('Saved output data to: {}'.format(outf.name))
+
 
     if use_tpu:
         print('Shutting down TPU')
         sess.run(tpu.shutdown_system())
 
-    print('Saving session information')
-    saver = tf.train.Saver()
-    save_path = saver.save(sess, os.environ.get('VH_OUTPUTS_DIR', '.') + '/model.ckpt')
-    print('OK: {}'.format(save_path))
 
 print('Done!')
