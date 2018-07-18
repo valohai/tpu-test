@@ -35,10 +35,9 @@ with tf.Session(tpu_grpc_url) as sess:
         sess.run(tpu.initialize_system())
     sess.run(tf.global_variables_initializer())
     print('Running computation {}'.format(computation))
-    output = sess.run(computation)
-    print(output)
     output_var = tf.get_variable('output', output_shape)
-    sess.run(tf.assign(output_var, output))
+    output = sess.run(tf.assign(output_var, computation))
+    print(output)
 
     if use_tpu:
         print('Shutting down TPU')
